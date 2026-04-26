@@ -4,6 +4,7 @@ import com.recruitment.userservice.dto.LoginRequest;
 import com.recruitment.userservice.dto.RegisterRequest;
 import com.recruitment.userservice.model.User;
 import com.recruitment.userservice.service.UserService;
+import com.recruitment.userservice.security.JwtService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -11,9 +12,11 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService service;
+    private final JwtService jwtService;
 
-    public UserController(UserService service) {
+    public UserController(UserService service, JwtService jwtService) {
         this.service = service;
+        this.jwtService = jwtService;
     }
 
     // REGISTER
@@ -23,15 +26,16 @@ public class UserController {
         return service.register(user);
     }
 
-    // LOGIN
+    // LOGIN (retourne JWT)
     @PostMapping("/login")
     public String login(@RequestBody LoginRequest req) {
+
         return service.login(req.email, req.password)
-                .map(u -> "LOGIN SUCCESS")
+                .map(u -> jwtService.generateToken(u.getId(), u.getEmail(), u.getRole()))
                 .orElse("INVALID CREDENTIALS");
     }
 
-    // UPDATE PROFILE
+    // UPDATE PROFILE (RESTE INTACT)
     @PutMapping("/{id}")
     public User update(@PathVariable Long id, @RequestBody User updated) {
         updated.setId(id);
