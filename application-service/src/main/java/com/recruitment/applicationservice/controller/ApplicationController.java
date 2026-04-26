@@ -51,4 +51,28 @@ public class ApplicationController {
 
         return app;
     }
+    @PutMapping("/{id}/status")
+    public Application updateStatus(@PathVariable Long id,
+                                    @RequestParam String status,
+                                    @RequestHeader("Authorization") String token) {
+
+        Long userId = jwtUtil.extractUserId(token);
+        String role = jwtUtil.extractRole(token);
+
+        if (!"RECRUTEUR".equals(role)) {
+            throw new RuntimeException("FORBIDDEN: only recruiter can update");
+        }
+
+        Application app = service.getById(id)
+                .orElseThrow(() -> new RuntimeException("Application not found"));
+
+        // 🔴 Vérifier ownership du job
+        boolean isOwner = service.isRecruiterOwnerOfJob(app.getJobId(), userId);
+
+        if (!isOwner) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "not your job");
+        }
+
+        return service.updateStatus(app, status);
+    }
 }
